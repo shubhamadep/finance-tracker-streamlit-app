@@ -1,13 +1,23 @@
 import streamlit as st
 import pickle
 from PyPDF2 import PdfReader
-from streamlit_extras.add_vertical_space import add_vertical_space
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.llms import OpenAI
-from langchain.chains.question_answering import load_qa_chain
 from langchain.callbacks import get_openai_callback
+from langchain.prompts.chat import (
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
+
+from langchain.prompts import (
+    ChatPromptTemplate, 
+    HumanMessagePromptTemplate,
+)
+
+from langchain.chains import LLMChain
+
 import os
 
 import streamlit as st
@@ -93,31 +103,34 @@ class ChatApp:
     def run(self):
         st.header("Ask questions about your portfolio 💬")
 
-        # with st.sidebar:
-        #     st.title('LLM Chat App')
-        #     st.markdown('''
-        #     ## About
-        #     This app is an LLM-powered chatbot built using:
-        #     - [Streamlit](https://streamlit.io/)
-        #     - [LangChain](https://python.langchain.com/)
-        #     - [OpenAI](https://platform.openai.com/docs/models) LLM model
-        #     ''')
-        #     add_vertical_space(5)
-
-        #pdf = st.file_uploader("Upload your PDF", type='pdf')
-
-        # if pdf is not None:
-        #     self.process_pdf(pdf)
-
         query = st.text_input("")
 
         if query and self.vector_store is not None:
             docs = self.vector_store.similarity_search(query=query, k=3)
 
-            llm = OpenAI(model_name='gpt-3.5-turbo')
-            chain = load_qa_chain(llm=llm, chain_type="stuff")
+            template = """
+                You are a financial advisor that can answer questions based on the financial reports 
+                and document provided: {docs}
+
+                Only use factual information from the documents to answer the questions. 
+
+                If you dont have enough information to answer the question, say "I don't have sufficient
+                information to answer this question"
+            """
+
+            human_template = "Answer the following question: {query}"
+
+            system_message_prompt = SystemMessagePromptTemplate.from_template(template)
+            human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
+            
+            chat_prompt = ChatPromptTemplate.from_messages(
+                [system_message_prompt, human_message_prompt]
+            )
+
+            llm = OpenAI(model_name='gpt-3.5-turbo', temperature=0.2)
+            chain = LLMChain(llm=llm, prompt=chat_prompt)
             with get_openai_callback() as cb:
-                response = chain.run(input_documents=docs, question=query)
+                response = chain.run(docs=docs, query=query)
                 print(cb)
             st.write(response)
 
