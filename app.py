@@ -15,9 +15,11 @@ import streamlit as st
 import boto3
 
 load_dotenv()
-access_key = os.getenv("AWS_ACCESS_KEY_ID")
-secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-bucket_name = os.getenv("BUCKET_NAME")
+
+access_key = st.secrets["aws_access_key_id"]
+secret_key = st.secrets["aws_secret_access_key"]
+bucket_name = st.secrets["aws_default_region"]
+OPENAI_API_KEY = st.secrets["openai_api_key"]
 
 class ChatApp:
     def check_password(self):
