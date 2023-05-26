@@ -59,7 +59,7 @@ class ChatApp:
         file_key = 'pickle_file_05_25_23.pkl'
 
         # Download the file from S3
-        response = s3.download_file(bucket_name, file_key, file_key)
+        response = s3.get_object(Bucket=bucket_name, Key=file_key)
         pickle_data = response['Body'].read()
 
         # Load the Pickle data
