@@ -4,3 +4,4 @@ PDFs/
 pickles/
 myenv/
 .env
+create-embedding.py
