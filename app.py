@@ -59,9 +59,7 @@ class ChatApp:
 
         # Download the file from S3
         response = s3.get_object(Bucket=bucket_name, 
-                                 Key=file_key,
-                                 aws_access_key_id=access_key,
-                                 aws_secret_access_key=secret_key)
+                                 Key=file_key)
         pickle_data = response['Body'].read()
 
         # Load the Pickle data
