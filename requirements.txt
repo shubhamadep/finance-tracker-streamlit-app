@@ -52,7 +52,6 @@ idna==3.4
 importlib-metadata==6.6.0
 InstructorEmbedding==1.0.0
 ipykernel==6.23.1
-ipython==8.13.2
 jedi==0.18.2
 Jinja2==3.1.2
 jmespath==1.0.1
