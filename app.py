@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 import pickle
 from PyPDF2 import PdfReader
 from streamlit_extras.add_vertical_space import add_vertical_space
@@ -13,8 +12,6 @@ import os
 
 import streamlit as st
 import boto3
-
-load_dotenv()
 
 access_key = st.secrets["aws_access_key_id"]
 secret_key = st.secrets["aws_secret_access_key"]
