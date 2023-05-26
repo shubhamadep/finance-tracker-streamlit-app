@@ -13,9 +13,9 @@ import os
 import streamlit as st
 import boto3
 
-access_key = st.secrets["aws_access_key_id"]
-secret_key = st.secrets["aws_secret_access_key"]
-bucket_name = st.secrets["aws_default_region"]
+access_key_id = st.secrets["AWS_ACCESS_KEY_ID"]
+secret_access_key = st.secrets["AWS_SECRET_ACCESS_KEY"]
+bucket_name = st.secrets["AWS_DEFAULT_REGION"]
 
 OpenAI.api_key=st.secrets["OPENAI_API_KEY"]
 
@@ -51,6 +51,7 @@ class ChatApp:
     def __init__(self):
         self.vector_store = None
         # Create an S3 client
+        # s3 = boto3.client('s3')
         s3 = boto3.client('s3')
 
         # Specify the bucket and file key (path) of the Pickle file
@@ -58,8 +59,7 @@ class ChatApp:
         file_key = 'pickle_file_05_25_23.pkl'
 
         # Download the file from S3
-        response = s3.get_object(Bucket=bucket_name, 
-                                 Key=file_key)
+        response = s3.download_file(bucket_name, file_key, file_key)
         pickle_data = response['Body'].read()
 
         # Load the Pickle data
