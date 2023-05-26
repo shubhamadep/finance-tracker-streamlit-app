@@ -1,5 +1,4 @@
 langchain==0.0.15
-python-dotenv==1.0.0
 faiss-cpu==1.7.4
 # requirements.txt
 s3fs==2023.5.0
