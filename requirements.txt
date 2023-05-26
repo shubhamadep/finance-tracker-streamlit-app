@@ -1,8 +1,6 @@
 langchain==0.0.15
-PyPDF2==3.0.1
 python-dotenv==1.0.0
 faiss-cpu==1.7.4
-python-dotenv==0.21.1
 # requirements.txt
 s3fs==2023.5.0
 # Direct pypi install coming soon
