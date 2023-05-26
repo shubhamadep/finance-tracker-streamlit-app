@@ -16,7 +16,8 @@ import boto3
 access_key = st.secrets["aws_access_key_id"]
 secret_key = st.secrets["aws_secret_access_key"]
 bucket_name = st.secrets["aws_default_region"]
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+
+OpenAI.api_key=st.secrets["OPENAI_API_KEY"]
 
 class ChatApp:
     def check_password(self):
