@@ -19,3 +19,5 @@ as needed.
 
 This app also has a simple auth to preserve mis use of my personal OPENAI key. 
 
+
+NOTE: personal keys might exists in the initial commits which have been deleted from accounts. 
