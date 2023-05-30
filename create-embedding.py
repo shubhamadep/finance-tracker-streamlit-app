@@ -8,7 +8,12 @@ from langchain.embeddings import OpenAIEmbeddings
 import pickle
 from langchain.vectorstores import FAISS
 
-os.environ["OPENAI_API_KEY"] = "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"
+# Set the OPENAI_API_KEY from local environment variables
+api_key = os.environ.get("OPENAI_API_KEY")
+
+if api_key is None:
+    raise ValueError("OPENAI_API_KEY is not set in the environment variables.")
+
 root_dir = '/Users/shubhamadep/Desktop/workspace/pdf-chat-05-25-23'
 
 # loader = TextLoader('single_text_file.txt')
@@ -17,12 +22,13 @@ documents = loader.load()
 print(len(documents))
 
 text_splitter = RecursiveCharacterTextSplitter(
-                                               chunk_size=1000, 
-                                               chunk_overlap=200)
+    chunk_size=1000,
+    chunk_overlap=200
+)
 
 texts = text_splitter.split_documents(documents)
 
-embeddings = OpenAIEmbeddings()
+embeddings = OpenAIEmbeddings(api_key=api_key)
 
 db_openAIEmbedd = FAISS.from_documents(texts, embeddings)
 with open(f"pickle_file_05_25_23.pkl", "wb") as f:
