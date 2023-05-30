@@ -14,10 +14,8 @@ api_key = os.environ.get("OPENAI_API_KEY")
 if api_key is None:
     raise ValueError("OPENAI_API_KEY is not set in the environment variables.")
 
-root_dir = '/Users/shubhamadep/Desktop/workspace/pdf-chat-05-25-23'
-
 # loader = TextLoader('single_text_file.txt')
-loader = DirectoryLoader(f'{root_dir}/PDFs/', glob="./*.pdf", loader_cls=PyPDFLoader)
+loader = DirectoryLoader(f'./PDFs/', glob="./*.pdf", loader_cls=PyPDFLoader)
 documents = loader.load()
 print(len(documents))
 
