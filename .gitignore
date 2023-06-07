@@ -1,6 +1,7 @@
 .DS_Store
 .streamlit/
 PDFs/
+XLs/
 pickles/
 myenv/
 .env
