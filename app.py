@@ -17,8 +17,9 @@ from langchain.prompts import (
 )
 
 from langchain.chains import LLMChain
-
+import openai
 import os
+from streamlit_chat import message
 
 import streamlit as st
 import boto3
@@ -26,10 +27,30 @@ import boto3
 access_key_id = st.secrets["AWS_ACCESS_KEY_ID"]
 secret_access_key = st.secrets["AWS_SECRET_ACCESS_KEY"]
 bucket_name = st.secrets["AWS_DEFAULT_REGION"]
-
 OpenAI.api_key=st.secrets["OPENAI_API_KEY"]
 
+model_name = "gpt-3.5-turbo"
+
+st.set_page_config(page_title="Finance Chatbot", page_icon=":robot_face:")
+
 class ChatApp:
+    def __init__(self):
+        self.vector_store = None
+        # Create an S3 client
+        # s3 = boto3.client('s3')
+        s3 = boto3.client('s3')
+
+        # Specify the bucket and file key (path) of the Pickle file
+        bucket_name = 'pdfgptembeddings'
+        file_key = 'pickle_file_05_25_23.pkl'
+
+        # Download the file from S3
+        response = s3.get_object(Bucket=bucket_name, Key=file_key)
+        pickle_data = response['Body'].read()
+
+        # Load the Pickle data
+        self.vector_store = pickle.loads(pickle_data)
+
     def check_password(self):
         """Returns `True` if the user had the correct password."""
 
@@ -57,23 +78,6 @@ class ChatApp:
             else:
                 # Password correct.
                 return True
-    
-    def __init__(self):
-        self.vector_store = None
-        # Create an S3 client
-        # s3 = boto3.client('s3')
-        s3 = boto3.client('s3')
-
-        # Specify the bucket and file key (path) of the Pickle file
-        bucket_name = 'pdfgptembeddings'
-        file_key = 'pickle_file_05_25_23.pkl'
-
-        # Download the file from S3
-        response = s3.get_object(Bucket=bucket_name, Key=file_key)
-        pickle_data = response['Body'].read()
-
-        # Load the Pickle data
-        self.vector_store = pickle.loads(pickle_data)
 
     def process_pdf(self, pdf):
         pdf_reader = PdfReader(pdf)
@@ -100,10 +104,9 @@ class ChatApp:
             with open(f"{store_name}.pkl", "wb") as f:
                 pickle.dump(self.vector_store, f)
 
-    def run(self):
-        st.header("Ask questions about your portfolio 💬")
-
-        query = st.text_input("")
+    # generate a response
+    def generate_response(self, query):
+        st.session_state['messages'].append({"role": "user", "content": query})
 
         if query and self.vector_store is not None:
             docs = self.vector_store.similarity_search(query=query, k=3)
@@ -129,16 +132,107 @@ class ChatApp:
 
             llm = OpenAI(model_name='gpt-3.5-turbo', temperature=0.2)
             chain = LLMChain(llm=llm, prompt=chat_prompt)
-            with get_openai_callback() as cb:
+            with get_openai_callback() as completion:
                 response = chain.run(docs=docs, query=query)
-                print(cb)
-            st.write(response)
+                print(completion)
+
+        st.session_state['messages'].append({"role": "assistant", "content": response})
+
+        total_tokens = completion.total_tokens
+        prompt_tokens = completion.prompt_tokens
+        completion_tokens = completion.completion_tokens
+        return response, total_tokens, prompt_tokens, completion_tokens
+    
+    ## Function for taking user provided prompt as input
+    def get_text(self):
+        input_text = st.text_input("You: ", "", key="input")
+        return input_text
+
+    def run(self):
+        st.header("Ask questions about your portfolio 💬")
+
+        # container for text box
+        container = st.container()
+
+        # container for chat history
+        response_container = st.container()
+
+        # Initialise session state variables
+        if 'generated' not in st.session_state:
+            st.session_state['generated'] = []
+        if 'past' not in st.session_state:
+            st.session_state['past'] = []
+        if 'messages' not in st.session_state:
+            st.session_state['messages'] = [
+                {"role": "system", "content": "You are a helpful assistant."}
+            ]
+        
+        if 'model_name' not in st.session_state:
+            st.session_state['model_name'] = []
+        if 'cost' not in st.session_state:
+            st.session_state['cost'] = []
+        if 'total_tokens' not in st.session_state:
+            st.session_state['total_tokens'] = []
+        if 'total_cost' not in st.session_state:
+            st.session_state['total_cost'] = 0.0
+
+        # Sidebar - let user choose model, show total cost of current conversation, and let user clear the current conversation
+        st.sidebar.title("Sidebar")
+        counter_placeholder = st.sidebar.empty()
+        counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
+        clear_button = st.sidebar.button("Clear Conversation", key="clear")
+
+        # reset everything
+        if clear_button:
+            st.session_state['generated'] = []
+            st.session_state['past'] = []
+            st.session_state['messages'] = [
+                {"role": "system", "content": "You are a helpful assistant."}
+            ]
+            st.session_state['number_tokens'] = []
+            st.session_state['model_name'] = []
+            st.session_state['cost'] = []
+            st.session_state['total_cost'] = 0.0
+            st.session_state['total_tokens'] = []
+            counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
+
+
+        with container:
+            with st.form(key='my_form', clear_on_submit=True):
+                user_input = st.text_area("You:", key='input', height=100)
+                submit_button = st.form_submit_button(label='Send')
+
+        if user_input:
+            with st.spinner("Working on it ..."):
+                output, total_tokens, prompt_tokens, completion_tokens = self.generate_response(user_input)
+            st.session_state['past'].append(user_input)
+            st.session_state['generated'].append(output)
+            st.session_state['model_name'].append(model_name)
+            st.session_state['total_tokens'].append(total_tokens)
+
+            # from https://openai.com/pricing#language-models
+            if model_name == "GPT-3.5":
+                cost = total_tokens * 0.002 / 1000
+            else:
+                cost = (prompt_tokens * 0.03 + completion_tokens * 0.06) / 1000
+
+            st.session_state['cost'].append(cost)
+            st.session_state['total_cost'] += cost
+
+            with response_container:
+                if submit_button:
+                    for i in range(len(st.session_state['generated'])-1, -1, -1):
+                        message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
+                        message(st.session_state["generated"][i], key=str(i))
+                        st.write(
+                            f"Model used: {st.session_state['model_name'][i]}; Number of tokens: {st.session_state['total_tokens'][i]}; Cost: ${st.session_state['cost'][i]:.5f}")
+                        counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
+
 
 def main():
     # streamlit_app.py
     def check_password():
         """Returns `True` if the user had the correct password."""
-
         def password_entered():
             """Checks whether a password entered by the user is correct."""
             if st.session_state["password"] == st.secrets["password"]:
