@@ -3,6 +3,7 @@ import pickle
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
+from streamlit_extras.add_vertical_space import add_vertical_space
 from langchain.vectorstores import FAISS
 from langchain.llms import OpenAI
 from langchain.callbacks import get_openai_callback
@@ -148,8 +149,8 @@ class ChatApp:
         return input_text
 
     def run(self):
-        st.header("Ask questions about your portfolio 💬")
-
+        st.header("Ask your questions 💬")
+        add_vertical_space(2)
         # container for text box
         container = st.container()
 
@@ -176,10 +177,17 @@ class ChatApp:
             st.session_state['total_cost'] = 0.0
 
         # Sidebar - let user choose model, show total cost of current conversation, and let user clear the current conversation
-        st.sidebar.title("Sidebar")
-        counter_placeholder = st.sidebar.empty()
-        counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
-        clear_button = st.sidebar.button("Clear Conversation", key="clear")
+        with st.sidebar:
+            st.title("Currently using: " + model_name)
+            counter_placeholder = st.empty()
+            counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
+            clear_button = st.button("Clear Conversation", key="clear")
+            add_vertical_space(1)
+            st.write("Can answer questions about: ")
+            st.write("Zomato Mar'23 earnings")
+            st.write("Mahindra Mar'23 earnings")
+
+
 
         # reset everything
         if clear_button:
