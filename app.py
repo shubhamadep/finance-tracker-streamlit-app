@@ -17,7 +17,6 @@ from langchain.prompts import (
 )
 
 from langchain.chains import LLMChain
-import openai
 import os
 from streamlit_chat import message
 
