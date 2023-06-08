@@ -16,6 +16,7 @@ from langchain.prompts import (
     ChatPromptTemplate, 
     HumanMessagePromptTemplate,
 )
+from langchain.chat_models import ChatOpenAI
 
 from langchain.chains import LLMChain
 import os
@@ -28,16 +29,15 @@ access_key_id = st.secrets["AWS_ACCESS_KEY_ID"]
 secret_access_key = st.secrets["AWS_SECRET_ACCESS_KEY"]
 bucket_name = st.secrets["AWS_DEFAULT_REGION"]
 OpenAI.api_key=st.secrets["OPENAI_API_KEY"]
-
-model_name = "gpt-3.5-turbo"
+#model_name = "gpt-3.5-turbo"
 
 st.set_page_config(page_title="Excel Chatbot", page_icon=":robot_face:")
 
 class ChatApp:
     def __init__(self):
         self.vector_store = None
+        self.model_name = "gpt-3.5-turbo"
         # Create an S3 client
-        # s3 = boto3.client('s3')
         s3 = boto3.client('s3')
 
         # Specify the bucket and file key (path) of the Pickle file
@@ -130,7 +130,11 @@ class ChatApp:
                 [system_message_prompt, human_message_prompt]
             )
 
-            llm = OpenAI(model_name='gpt-3.5-turbo', temperature=0.2)
+            #llm = OpenAI(model_name='gpt-4', temperature=0.2)
+            llm = ChatOpenAI(
+                model_name = self.model_name,
+                temperature = 0
+            );
             chain = LLMChain(llm=llm, prompt=chat_prompt)
             with get_openai_callback() as completion:
                 response = chain.run(docs=docs, query=query)
@@ -178,11 +182,11 @@ class ChatApp:
 
         # Sidebar - let user choose model, show total cost of current conversation, and let user clear the current conversation
         with st.sidebar:
-            st.title("Currently using: " + model_name)
+            st.title("Currently using: " + self.model_name)
             counter_placeholder = st.empty()
             counter_placeholder.write(f"Total cost of this conversation: ${st.session_state['total_cost']:.5f}")
             clear_button = st.button("Clear Conversation", key="clear")
-            add_vertical_space(1)
+            add_vertical_space(2)
             st.write("Can answer questions about: ")
             st.write("[Sample Zerodha Portfolio](https://onedrive.live.com/view.aspx?resid=4EE17E5D8ADF0FC7!36727&cid=4ee17e5d8adf0fc7&authkey=!AEkfwN6Ye1AHc4U&CT=1686121706958&OR=ItemsView)")
 
@@ -203,6 +207,10 @@ class ChatApp:
 
         with container:
             with st.form(key='my_form', clear_on_submit=True):
+                self.model_name = st.selectbox(
+                    'GPT Model',
+                    ("gpt-3.5-turbo", "gpt-4 (not supported yet)")
+                )
                 user_input = st.text_area("You:", key='input', height=100)
                 submit_button = st.form_submit_button(label='Send')
 
@@ -211,11 +219,11 @@ class ChatApp:
                 output, total_tokens, prompt_tokens, completion_tokens = self.generate_response(user_input)
             st.session_state['past'].append(user_input)
             st.session_state['generated'].append(output)
-            st.session_state['model_name'].append(model_name)
+            st.session_state['model_name'].append(self.model_name)
             st.session_state['total_tokens'].append(total_tokens)
 
             # from https://openai.com/pricing#language-models
-            if model_name == "GPT-3.5":
+            if self.model_name == "GPT-3.5":
                 cost = total_tokens * 0.002 / 1000
             else:
                 cost = (prompt_tokens * 0.03 + completion_tokens * 0.06) / 1000
